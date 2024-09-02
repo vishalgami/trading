@@ -136,7 +136,7 @@ def execute_strategy(symbol):
     last_close = latest_row['close']
     last_sma20 = latest_row['SMA20']
     
-    if last_close < last_sma20:
+    if last_close > last_sma20:
         subject = f"[IMPORTANT] Price Alert for {symbol}"
         body = f"The last closing price of {symbol} is {last_close}, which is below the 20-period SMA of {last_sma20}."
         send_email(subject, body)

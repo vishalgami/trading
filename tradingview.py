@@ -146,7 +146,7 @@ def execute_strategy(symbol):
         send_email(subject, body)
     return {"symbol": symbol, "last_close": last_close, "last_sma20": last_sma20}
         
-@app.route('/')
+@app.route('/call')
 def run_strategy():
     symbol = 'MON100'
     result = execute_strategy(symbol)

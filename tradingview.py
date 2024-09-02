@@ -6,7 +6,7 @@ from mysql.connector import Error
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from flask import Flask
+from flask import Flask,jsonify
 import os
 
 app = Flask(__name__)
@@ -144,11 +144,13 @@ def execute_strategy(symbol):
         subject = f"[IMPORTANT] Price Alert for {symbol}"
         body = f"The last closing price of {symbol} is {last_close}, which is below the 20-period SMA of {last_sma20}."
         send_email(subject, body)
-
-def main():
+    return {"symbol": symbol, "last_close": last_close, "last_sma20": last_sma20}
+        
+@app.route('/')
+def run_strategy():
     symbol = 'MON100'
-    execute_strategy(symbol)
+    result = execute_strategy(symbol)
+    return jsonify(result)
 
 if __name__ == "__main__":
-    main()
     app.run(host='0.0.0.0', port=5000)

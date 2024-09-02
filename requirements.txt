@@ -17,7 +17,7 @@ pytz==2024.1
 requests==2.32.3
 six==1.16.0
 soupsieve==2.6
-tvdatafeed==2.1.0
+git+https://github.com/rongardF/tvdatafeed.git
 twelvedata==1.2.22
 tzdata==2024.1
 urllib3==2.2.2

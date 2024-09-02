@@ -6,7 +6,7 @@ from mysql.connector import Error
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from flask import Flask,jsonify
+from flask import Flask, jsonify
 import os
 
 app = Flask(__name__)
@@ -14,85 +14,51 @@ app = Flask(__name__)
 # Step 1: Login to TradingView
 tv = TvDatafeed(username='itsmevishalgami', password='')
 
-# Database connection functions
-def create_connection():
+from pymongo import MongoClient
+from pymongo.errors import ServerSelectionTimeoutError, PyMongoError
+
+# MongoDB connection
+def create_mongo_connection():
     try:
-        connection = mysql.connector.connect(
-            host='localhost',
-            user='root',
-            password='root',
-            database='trading'
-        )
-        if connection.is_connected():
-            print("Connection to MySQL database successful")
-            return connection
-    except Error as e:
-        print(f"Error: {e}")
+        # Replace with your MongoDB connection string
+        mongo_uri = 'mongodb+srv://vishalgami:vishalgami@trading.dc0fv.mongodb.net/?retryWrites=true&w=majority&appName=Trading'
+        client = MongoClient(mongo_uri, serverSelectionTimeoutMS=5000)  # 5 seconds timeout
+        db = client['trading']  # Replace 'trading' with your database name
+        # Check if the server is reachable
+        client.admin.command('ping')
+        print("Connection to MongoDB database successful")
+        return db
+    except ServerSelectionTimeoutError as e:
+        print(f"Connection Timeout Error: {e}")
+        return None
+    except PyMongoError as e:
+        print(f"PyMongo Error: {e}")
         return None
 
-def create_table(cursor):
-    create_table_query = '''
-    CREATE TABLE IF NOT EXISTS etf_data (
-        datetime DATETIME,
-        symbol VARCHAR(10),
-        open FLOAT,
-        high FLOAT,
-        low FLOAT,
-        close FLOAT,
-        volume INT,
-        sma20 FLOAT,
-        PRIMARY KEY (datetime, symbol)
-    )
-    '''
-    cursor.execute(create_table_query)
-    
-    create_orders_table_query = '''
-    CREATE TABLE IF NOT EXISTS limit_orders (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        symbol VARCHAR(10),
-        order_type VARCHAR(10),
-        price FLOAT,
-        investment FLOAT,
-        status VARCHAR(20),
-        filled FLOAT,
-        created_at DATETIME,
-        updated_at DATETIME
-    )
-    '''
-    cursor.execute(create_orders_table_query)
+# Create MongoDB collection and ensure indexes
+def create_collections(db):
+    db.etf_data.create_index([("datetime", 1), ("symbol", 1)], unique=True)
+    # db.limit_orders.create_index([("id", 1)], unique=True)
 
-def insert_data(cursor, data, symbol):
-    insert_query = '''
-    INSERT INTO etf_data (datetime, symbol, open, high, low, close, volume, sma20)
-    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-    ON DUPLICATE KEY UPDATE
-        open=VALUES(open),
-        high=VALUES(high),
-        low=VALUES(low),
-        close=VALUES(close),
-        volume=VALUES(volume),
-        sma20=VALUES(sma20)
-    '''
+# Insert data into MongoDB
+def insert_data(db, data, symbol):
+    collection = db.etf_data
     for index, row in data.iterrows():
-        values = (
-            index,
-            symbol,
-            row['open'],
-            row['high'],
-            row['low'],
-            row['close'],
-            row['volume'],
-            row['SMA20'] if pd.notna(row['SMA20']) else None
+        document = {
+            'datetime': index.to_pydatetime(),
+            'symbol': symbol,
+            'open': row['open'],
+            'high': row['high'],
+            'low': row['low'],
+            'close': row['close'],
+            'volume': row['volume'],
+            'sma20': row['SMA20'] if pd.notna(row['SMA20']) else None
+        }
+        collection.update_one(
+            {'datetime': index.to_pydatetime(), 'symbol': symbol},
+            {'$set': document},
+            upsert=True
         )
-        cursor.execute(insert_query, values)
-
-def insert_order(cursor, symbol, order_type, price, investment, status, filled):
-    insert_query = '''
-    INSERT INTO limit_orders (symbol, order_type, price, investment, status, filled, created_at, updated_at)
-    VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW())
-    '''
-    values = (symbol, order_type, price, investment, status, filled)
-    cursor.execute(insert_query, values)
 
 def fetch_latest_data(symbol):
     data = tv.get_hist(symbol=symbol, exchange='NSE', interval=Interval.in_daily, n_bars=21)
@@ -101,14 +67,10 @@ def fetch_latest_data(symbol):
     data['SMA20'] = data['close'].rolling(window=20).mean()
     latest_data = data.iloc[-1:]
     
-    connection = create_connection()
-    if connection:
-        cursor = connection.cursor()
-        insert_data(cursor, latest_data, symbol)
-        connection.commit()
-        cursor.close()
-        connection.close()
-    print(latest_data)
+    db = create_mongo_connection()
+    print(db.connect)
+    if db is not None:
+        insert_data(db, latest_data, symbol)
     return latest_data
 
 def send_email(subject, body):
@@ -145,7 +107,7 @@ def execute_strategy(symbol):
         body = f"The last closing price of {symbol} is {last_close}, which is below the 20-period SMA of {last_sma20}."
         send_email(subject, body)
     return {"symbol": symbol, "last_close": last_close, "last_sma20": last_sma20}
-        
+
 @app.route('/call')
 def run_strategy():
     symbol = 'MON100'
@@ -153,4 +115,5 @@ def run_strategy():
     return jsonify(result)
 
 if __name__ == "__main__":
+    # run_strategy()
     app.run(host='0.0.0.0', port=5000)

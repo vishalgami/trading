@@ -1,0 +1,14 @@
+{
+    "builds": [
+        {
+            "src":"tradingview.py",
+            "use":"@vercel/python"
+        }
+    ],
+    "routes": [
+        {
+            "src":"/(*)",
+            "dest":"tradingview.py"
+        }
+    ]
+}

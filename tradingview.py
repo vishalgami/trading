@@ -99,7 +99,7 @@ def send_email(subject, body):
 def execute_strategy(symbol):
     data = fetch_latest_data(symbol)
     latest_row = data.iloc[-1]
-    date_time = data.index
+    date_time = data.index.to_pydatetime()
     last_close = latest_row['close']
     last_sma20 = latest_row['SMA20']
     

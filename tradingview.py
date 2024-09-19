@@ -101,7 +101,7 @@ def execute_strategy(symbol):
     latest_row = data.iloc[-1]
     date_time = data.index
     //last_close = latest_row['close']
-    last_close = l56
+    last_close = 'l56'
     last_sma20 = latest_row['SMA20']
     
     if last_close < last_sma20:

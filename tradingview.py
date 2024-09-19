@@ -75,7 +75,7 @@ def fetch_latest_data(symbol):
 
 def send_email(subject, body):
     sender_email = 'itsmevishal4@gmail.com'
-    receiver_email = 'itsmevishalgami@gmail.com;bkgami@gmail.com'
+    receiver_email = 'itsmevishalgami@gmail.com'
     password = 'aplc lbda hkai ncik'
     
     msg = MIMEMultipart()
@@ -99,12 +99,14 @@ def send_email(subject, body):
 def execute_strategy(symbol):
     data = fetch_latest_data(symbol)
     latest_row = data.iloc[-1]
-    last_close = latest_row['close']
+    date_time = data.index
+    //last_close = latest_row['close']
+    last_close = l56
     last_sma20 = latest_row['SMA20']
     
     if last_close < last_sma20:
         subject = f"[IMPORTANT] Price Alert for {symbol}"
-        body = f"The last closing price of {symbol} is {last_close}, which is below the 20-period SMA of {last_sma20}."
+        body = f"The last closing price of {symbol} - {date_time} is {last_close}, which is below the 20-period SMA of {last_sma20}."
         send_email(subject, body)
     return {"symbol": symbol, "last_close": last_close, "last_sma20": last_sma20}
 

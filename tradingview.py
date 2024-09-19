@@ -75,7 +75,7 @@ def fetch_latest_data(symbol):
 
 def send_email(subject, body):
     sender_email = 'itsmevishal4@gmail.com'
-    receiver_email = 'itsmevishalgami@gmail.com'
+    receiver_email = 'itsmevishalgami@gmail.com;bkgami@gmail.com'
     password = 'aplc lbda hkai ncik'
     
     msg = MIMEMultipart()
